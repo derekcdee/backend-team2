@@ -16,23 +16,34 @@ app.use('/webhook', webhook);
 app.use(express.json());
 app.use(cookieParser());
 
-// Replace all CORS configurations with this single one
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = getAllowedOrigins();
     
-    // Allow no-origin (server-to-server, mobile apps, etc.) and specific origins
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    console.log('Blocked by CORS:', origin);
     callback(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true  // Enable credentials for all allowed origins
-}));
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
 
-// Conditional logging - only in development
+// Apply CORS middleware BEFORE all routes
+app.use(cors(corsOptions));
+
+// Handle preflight requests for ALL routes
+app.options('*', cors(corsOptions));
+
+// const cuePresets = require('./routes/user/cuePresets');
+// app.use('/user/cuePresets', cuePresets);
+
+const userPrefs = require('./routes/user/prefs');
+app.use('/user/prefs', userPrefs);
+
 if (isDevelopment()) {
   // log all requests for debugging purposes
   app.use((req, res, next) => {
@@ -123,6 +134,9 @@ app.use('/announcements', announcements);
 
 const adminAnnouncements = require('./routes/admin/announcement');
 app.use('/admin/announcements', adminAnnouncements);
+
+const cuePresets = require('./routes/user/cuePresets');
+app.use('/user/cuePresets', cuePresets);
 
 // Sample route
 app.get('/', (req, res) => {
